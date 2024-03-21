@@ -1,36 +1,34 @@
 import React, { useContext, createContext } from 'react';
-
-import { useAddress, useContract, useConnect, useContractWrite } from '@thirdweb-dev/react';
+import { useAddress, useContract, useMetamask, useContractWrite } from '@thirdweb-dev/react';
 import { ethers } from 'ethers';
-import { EditionMetadataWithOwnerOutputSchema } from '@thirdweb-dev/sdk';
 
 const StateContext = createContext();
 
 export const StateContextProvider = ({ children }) => {
-  const { data: contract } = useContract("{{0xb9cf5634b5215cCd83fc9F57b888052786B06017}}");
+  const { contract } = useContract('0xb9cf5634b5215cCd83fc9F57b888052786B06017');
   const { mutateAsync: createBounty } = useContractWrite(contract, 'createBounty');
 
   const address = useAddress();
-  const connect = useConnect();
+  const connect = useMetamask();
 
   const publishBounty = async (form) => {
     try {
       const data = await createBounty({
-				args: [
-					address, // owner
-					form.title, // title
-					form.description, // description
-					form.target,
-					new Date(form.deadline).getTime(), // deadline,
-					form.image,
-				],
-			});
+        args: [
+          address,
+          form.title,
+          form.description,
+          form.target,
+          new Date(form.deadline).getTime(),
+          form.image,
+        ],
+      });
 
-      console.log("contract call success", data)
+      console.log('contract call success', data);
     } catch (error) {
-      console.log("contract call failure", error)
+      console.log('contract call failure', error);
     }
-  }
+  };
 
   const getBounties = async () => {
     const bounties = await contract.call('getBounties');
@@ -43,25 +41,22 @@ export const StateContextProvider = ({ children }) => {
       deadline: bounty.deadline.toNumber(),
       amountCollected: ethers.utils.formatEther(bounty.amountCollected.toString()),
       image: bounty.image,
-      pId: i
+      pId: i,
     }));
 
     return parsedBounties;
-  }
+  };
 
   const getUserBounties = async () => {
     const allBounties = await getBounties();
-
     const filteredBounties = allBounties.filter((bounty) => bounty.owner === address);
-
-    return filtereBounties;
-  }
+    return filteredBounties;
+  };
 
   const donate = async (pId, amount) => {
-    const data = await contract.call('donateToBounty', [pId], { value: ethers.utils.parseEther(amount)});
-
+    const data = await contract.call('donateToBounty', [pId], { value: ethers.utils.parseEther(amount) });
     return data;
-  }
+  };
 
   const getDonations = async (pId) => {
     const donations = await contract.call('getDonators', [pId]);
@@ -69,20 +64,19 @@ export const StateContextProvider = ({ children }) => {
 
     const parsedDonations = [];
 
-    for(let i = 0; i < numberOfDonations; i++) {
+    for (let i = 0; i < numberOfDonations; i++) {
       parsedDonations.push({
         donator: donations[0][i],
-        donation: ethers.utils.formatEther(donations[1][i].toString())
-      })
+        donation: ethers.utils.formatEther(donations[1][i].toString()),
+      });
     }
 
     return parsedDonations;
-  }
-
+  };
 
   return (
     <StateContext.Provider
-      value={{ 
+      value={{
         address,
         contract,
         connect,
@@ -90,12 +84,12 @@ export const StateContextProvider = ({ children }) => {
         getBounties,
         getUserBounties,
         donate,
-        getDonations
+        getDonations,
       }}
     >
       {children}
     </StateContext.Provider>
-  )
-}
+  );
+};
 
 export const useStateContext = () => useContext(StateContext);
